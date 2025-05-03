@@ -20,7 +20,16 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta property="og:description" content="Player is a minimalist web audio player with a black screen, animated grid, white flash on click, and automatic random track playback from a GitHub repo.">
+
+  <title>Player — Minimalist Audio Grid</title>
+  <meta name="description" content="Player is a minimalist web audio player with a black screen, animated grid, reactive flash, and random track playback from a GitHub-hosted archive.">
+  <meta property="og:title" content="Player by Andr oDei">
+  <meta property="og:description" content="Minimalist web audio experience with reactive visuals and generative sound. Click to flash and trigger a random track from the cloud.">
+  <meta property="og:image" content="https://yourdomain.xyz/preview.png">
+  <meta property="og:url" content="https://yourdomain.xyz">
+  <meta property="og:type" content="website">
+
+  <!-- Favicons -->
   <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
@@ -30,15 +39,7 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
   <link rel="manifest" href="/favicons/site.webmanifest">
   <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-title" content="Player">
-  <title>Player</title>
 
-  <meta name="description" content="Player is a minimalist web audio player with a black screen, animated grid, reactive flash, and random track playback from a GitHub-hosted archive.">
-
-  <meta property="og:title" content="Player by Andr oDei">
-  <meta property="og:description" content="Minimalist web audio experience with reactive visuals and generative sound. Click to flash and trigger a random track from the cloud.">
-  <meta property="og:image" content="https://yourdomain.xyz/preview.png">
-  <meta property="og:url" content="https://yourdomain.xyz">
-  <meta property="og:type" content="website">
   <style>
     html, body {
       margin: 0;
@@ -48,6 +49,7 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
       width: 100%;
       overflow: hidden;
     }
+
     #flash {
       position: fixed;
       top: 0;
@@ -60,6 +62,7 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
       transition: opacity 0.3s ease;
       z-index: 10;
     }
+
     #player-screen {
       position: fixed;
       top: 0;
@@ -69,6 +72,7 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
       z-index: 20;
       cursor: pointer;
     }
+
     #grid {
       position: fixed;
       top: 0;
@@ -77,159 +81,122 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
       height: 100%;
       z-index: 5;
     }
+
     line {
-      stroke: rgba(255, 255, 255, 1);
+      stroke: rgba(255, 255, 255, 0.12);
       stroke-width: 1;
       shape-rendering: geometricPrecision;
-      opacity: 0.1;
-      transition: opacity 0.1s linear;
     }
   </style>
 </head>
 <body>
-  <svg id="grid" preserveAspectRatio="xMidYMid slice"></svg>
+  <svg id="grid"></svg>
   <div id="player-screen"></div>
   <div id="flash"></div>
-  <audio id="audio" preload="auto"></audio>
 
   <script>
     const repo = "indexmod/player";
+    let audioFiles = [];
+    let currentAudioIndex = 0;
+    const audioElement = new Audio();
+
     const flash = document.getElementById("flash");
     const screen = document.getElementById("player-screen");
-    const audio = document.getElementById("audio");
     const svg = document.getElementById("grid");
-
-    let audioFiles = [];
 
     async function fetchAudioFiles() {
       try {
         const response = await fetch(`https://api.github.com/repos/${repo}/contents/`);
-        if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
         const files = await response.json();
-        if (!Array.isArray(files)) throw new Error("Некорректный ответ от API");
 
         audioFiles = files
           .filter(f => /\.(mp3|wav|ogg|m4a)$/i.test(f.name))
           .map(f => f.download_url);
 
-        if (audioFiles.length > 0) {
-          playRandomTrack();
-        } else {
-          console.error("Аудиофайлы не найдены");
+        if (audioFiles.length === 0) {
+          console.error("Нет аудиофайлов");
         }
-      } catch (error) {
-        console.error("Ошибка загрузки аудио:", error);
+      } catch (err) {
+        console.error("Ошибка загрузки аудио:", err);
       }
     }
 
-    function playRandomTrack() {
+    function playNextTrack() {
       if (audioFiles.length === 0) return;
-      const randomIndex = Math.floor(Math.random() * audioFiles.length);
-      audio.src = audioFiles[randomIndex];
-      audio.play().catch(err => console.error("Ошибка воспроизведения:", err));
+
+      audioElement.src = audioFiles[currentAudioIndex];
+      audioElement.play().catch(err => console.error("Ошибка воспроизведения:", err));
+
+      currentAudioIndex = (currentAudioIndex + 1) % audioFiles.length;
     }
 
-    function flashAndPlayRandom() {
+    function flashAndPlay() {
       flash.style.opacity = "1";
       setTimeout(() => {
         flash.style.opacity = "0";
-        playRandomTrack();
+        playNextTrack();
       }, 100);
     }
 
-    screen.addEventListener("click", flashAndPlayRandom);
-    audio.addEventListener("ended", playRandomTrack);
+    screen.addEventListener("click", flashAndPlay);
+    audioElement.addEventListener("ended", playNextTrack);
     document.addEventListener("DOMContentLoaded", () => {
       fetchAudioFiles();
-      resizeSVG();
+      createGrid();
+      animate();
     });
 
+    // Оригинальная сетка
     const cols = 20;
     const rows = 20;
-    let spacingX = 40;
-    let spacingY = 40;
+    const spacing = 40;
     let lines = [];
 
-    function resizeSVG() {
+    function createGrid() {
+      svg.innerHTML = "";
       const width = window.innerWidth;
       const height = window.innerHeight;
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      svg.innerHTML = "";
       lines = [];
-
-      spacingX = width / cols;
-      spacingY = height / rows;
 
       for (let y = 0; y <= rows; y++) {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         line.setAttribute("x1", 0);
-        line.setAttribute("y1", y * spacingY);
-        line.setAttribute("x2", width);
-        line.setAttribute("y2", y * spacingY);
+        line.setAttribute("y1", y * spacing);
+        line.setAttribute("x2", cols * spacing);
+        line.setAttribute("y2", y * spacing);
         svg.appendChild(line);
-        lines.push({ line, type: 'h', index: y });
+        lines.push(line);
       }
 
       for (let x = 0; x <= cols; x++) {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", x * spacingX);
+        line.setAttribute("x1", x * spacing);
         line.setAttribute("y1", 0);
-        line.setAttribute("x2", x * spacingX);
-        line.setAttribute("y2", height);
+        line.setAttribute("x2", x * spacing);
+        line.setAttribute("y2", rows * spacing);
         svg.appendChild(line);
-        lines.push({ line, type: 'v', index: x });
+        lines.push(line);
       }
     }
 
-    let audioContext, analyser, source, dataArray;
-
-    function setupAudioAnalysis() {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 128;
-
-        source = audioContext.createMediaElementSource(audio);
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-
-        dataArray = new Uint8Array(analyser.frequencyBinCount);
-      }
-    }
-
-    function updateGridLines() {
-      if (!analyser || !lines) return;
-
-      analyser.getByteFrequencyData(dataArray);
-
-      lines.forEach(({ line, type, index }, i) => {
-        const freqIndex = i % dataArray.length;
-        const volume = dataArray[freqIndex] / 255;
-        const offset = volume * 8;
-
-        if (type === 'h') {
-          const y = index * spacingY + offset;
-          line.setAttribute("y1", y);
-          line.setAttribute("y2", y);
+    function animate() {
+      const t = Date.now() * 0.002;
+      lines.forEach((line, i) => {
+        const offset = Math.sin(t + i) * 3;
+        if (i < rows + 1) {
+          line.setAttribute("y1", i * spacing + offset);
+          line.setAttribute("y2", i * spacing + offset);
         } else {
-          const x = index * spacingX + offset;
-          line.setAttribute("x1", x);
-          line.setAttribute("x2", x);
+          line.setAttribute("x1", (i - (rows + 1)) * spacing + offset);
+          line.setAttribute("x2", (i - (rows + 1)) * spacing + offset);
         }
-
-        const opacity = 0.08 + volume * 0.4;
-        line.setAttribute("opacity", opacity.toFixed(2));
       });
-
-      requestAnimationFrame(updateGridLines);
+      requestAnimationFrame(animate);
     }
 
-    audio.addEventListener("play", () => {
-      setupAudioAnalysis();
-      updateGridLines();
-    });
-
-    window.addEventListener("resize", resizeSVG);
+    window.addEventListener("resize", createGrid);
   </script>
 </body>
 </html>
