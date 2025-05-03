@@ -20,7 +20,26 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Player</title>
+
+  <title>Player — Minimalist Audio Grid</title>
+  <meta name="description" content="Player is a minimalist web audio player with a black screen, animated grid, reactive flash, and random track playback from a GitHub-hosted archive.">
+  <meta property="og:title" content="Player by Andr oDei">
+  <meta property="og:description" content="Minimalist web audio experience with reactive visuals and generative sound. Click to flash and trigger a random track from the cloud.">
+  <meta property="og:image" content="https://yourdomain.xyz/preview.png">
+  <meta property="og:url" content="https://yourdomain.xyz">
+  <meta property="og:type" content="website">
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicons/favicon-96x96.png">
+  <link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg">
+  <link rel="shortcut icon" href="/favicons/favicon.ico">
+  <link rel="manifest" href="/favicons/site.webmanifest">
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-title" content="Player">
+
   <style>
     html, body {
       margin: 0;
@@ -71,7 +90,7 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
   </style>
 </head>
 <body>
-  <svg id="grid" preserveAspectRatio="xMidYMid slice"></svg>
+  <svg id="grid"></svg>
   <div id="player-screen"></div>
   <div id="flash"></div>
 
@@ -80,6 +99,7 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
     let audioFiles = [];
     let currentAudioIndex = 0;
     const audioElement = new Audio();
+
     const flash = document.getElementById("flash");
     const screen = document.getElementById("player-screen");
     const svg = document.getElementById("grid");
@@ -124,15 +144,17 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
     document.addEventListener("DOMContentLoaded", () => {
       fetchAudioFiles();
       createGrid();
+      animate();
     });
 
-    // Простая сетка
+    // Оригинальная сетка
     const cols = 20;
     const rows = 20;
     const spacing = 40;
     let lines = [];
 
     function createGrid() {
+      svg.innerHTML = "";
       const width = window.innerWidth;
       const height = window.innerHeight;
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
@@ -142,7 +164,7 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         line.setAttribute("x1", 0);
         line.setAttribute("y1", y * spacing);
-        line.setAttribute("x2", width);
+        line.setAttribute("x2", cols * spacing);
         line.setAttribute("y2", y * spacing);
         svg.appendChild(line);
         lines.push(line);
@@ -153,30 +175,25 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
         line.setAttribute("x1", x * spacing);
         line.setAttribute("y1", 0);
         line.setAttribute("x2", x * spacing);
-        line.setAttribute("y2", height);
+        line.setAttribute("y2", rows * spacing);
         svg.appendChild(line);
         lines.push(line);
       }
-
-      animateGrid();
     }
 
-    function animateGrid() {
+    function animate() {
       const t = Date.now() * 0.002;
       lines.forEach((line, i) => {
         const offset = Math.sin(t + i) * 3;
-        const isHorizontal = parseFloat(line.getAttribute("y1")) === parseFloat(line.getAttribute("y2"));
-        if (isHorizontal) {
-          const y = parseFloat(line.getAttribute("y1")) + offset;
-          line.setAttribute("y1", y);
-          line.setAttribute("y2", y);
+        if (i < rows + 1) {
+          line.setAttribute("y1", i * spacing + offset);
+          line.setAttribute("y2", i * spacing + offset);
         } else {
-          const x = parseFloat(line.getAttribute("x1")) + offset;
-          line.setAttribute("x1", x);
-          line.setAttribute("x2", x);
+          line.setAttribute("x1", (i - (rows + 1)) * spacing + offset);
+          line.setAttribute("x2", (i - (rows + 1)) * spacing + offset);
         }
       });
-      requestAnimationFrame(animateGrid);
+      requestAnimationFrame(animate);
     }
 
     window.addEventListener("resize", createGrid);
