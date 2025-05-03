@@ -42,7 +42,7 @@
   <audio id="audio" preload="auto"></audio>
 
   <script>
-    const repo = "indexmod/player"; // <-- актуальный репозиторий
+    const repo = "indexmod/player";
     const flash = document.getElementById("flash");
     const screen = document.getElementById("player-screen");
     const audio = document.getElementById("audio");
@@ -78,7 +78,7 @@
       audio.play().catch(err => console.error("Ошибка воспроизведения:", err));
     }
 
-    function flashAndPlay() {
+    function flashAndPlayRandom() {
       flash.style.opacity = "1";
       setTimeout(() => {
         flash.style.opacity = "0";
@@ -86,12 +86,7 @@
       }, 100);
     }
 
-    screen.addEventListener("click", () => {
-      if (audio.paused) {
-        flashAndPlay();
-      }
-    });
-
+    screen.addEventListener("click", flashAndPlayRandom);
     audio.addEventListener("ended", playRandomTrack);
     document.addEventListener("DOMContentLoaded", fetchAudioFiles);
   </script>
