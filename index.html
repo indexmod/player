@@ -59,12 +59,25 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
       left: 0;
       width: 100%;
       height: 100%;
-      z-index: 1;
+      z-index: 20;
       cursor: pointer;
+    }
+    #grid {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+    }
+    line {
+      stroke: rgba(255, 255, 255, 0.07);
+      stroke-width: 1;
     }
   </style>
 </head>
 <body>
+  <svg id="grid" preserveAspectRatio="xMidYMid slice"></svg>
   <div id="player-screen"></div>
   <div id="flash"></div>
   <audio id="audio" preload="auto"></audio>
@@ -74,6 +87,7 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
     const flash = document.getElementById("flash");
     const screen = document.getElementById("player-screen");
     const audio = document.getElementById("audio");
+    const svg = document.getElementById("grid");
 
     let audioFiles = [];
 
@@ -116,7 +130,68 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
 
     screen.addEventListener("click", flashAndPlayRandom);
     audio.addEventListener("ended", playRandomTrack);
-    document.addEventListener("DOMContentLoaded", fetchAudioFiles);
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchAudioFiles();
+      resizeSVG();
+      animateGrid();
+    });
+
+    // SVG Grid logic
+    const cols = 20;
+    const rows = 20;
+    let spacingX = 40;
+    let spacingY = 40;
+    let lines = [];
+
+    function resizeSVG() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.innerHTML = "";
+      lines = [];
+
+      spacingX = width / cols;
+      spacingY = height / rows;
+
+      for (let y = 0; y <= rows; y++) {
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", 0);
+        line.setAttribute("y1", y * spacingY);
+        line.setAttribute("x2", width);
+        line.setAttribute("y2", y * spacingY);
+        svg.appendChild(line);
+        lines.push({ line, type: 'h', index: y });
+      }
+
+      for (let x = 0; x <= cols; x++) {
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x * spacingX);
+        line.setAttribute("y1", 0);
+        line.setAttribute("x2", x * spacingX);
+        line.setAttribute("y2", height);
+        svg.appendChild(line);
+        lines.push({ line, type: 'v', index: x });
+      }
+    }
+
+    function animateGrid() {
+      const t = Date.now() * 0.002;
+      lines.forEach(({ line, type, index }, i) => {
+        const offset = Math.sin(t + i) * 3;
+        if (type === 'h') {
+          const y = index * spacingY + offset;
+          line.setAttribute("y1", y);
+          line.setAttribute("y2", y);
+        } else {
+          const x = index * spacingX + offset;
+          line.setAttribute("x1", x);
+          line.setAttribute("x2", x);
+        }
+      });
+      requestAnimationFrame(animateGrid);
+    }
+
+    window.addEventListener("resize", resizeSVG);
   </script>
 </body>
 </html>
