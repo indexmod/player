@@ -87,12 +87,23 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
       stroke-width: 2;
       shape-rendering: geometricPrecision;
     }
+
+    #bouncer {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  z-index: 100;
+  pointer-events: none;
+}
+
   </style>
 </head>
 <body>
   <svg id="grid"></svg>
   <div id="player-screen"></div>
   <div id="flash"></div>
+  <img id="bouncer" src="ball.png" alt="ball">
 
   <script>
     const repo = "indexmod/player";
@@ -197,6 +208,32 @@ Player is a minimalist web audio player with a black screen, animated grid, and 
     }
 
     window.addEventListener("resize", createGrid);
+
+    const ball = document.getElementById("bouncer");
+    let posX = 100;
+    let posY = 100;
+    let speedX = 2;
+    let speedY = 2;
+
+    function moveBall() {
+      const ballWidth = 100;
+      const ballHeight = 100;
+      const maxX = window.innerWidth - ballWidth;
+      const maxY = window.innerHeight - ballHeight;
+
+      posX += speedX;
+      posY += speedY;
+
+      if (posX <= 0 || posX >= maxX) speedX *= -1;
+      if (posY <= 0 || posY >= maxY) speedY *= -1;
+
+      ball.style.left = `${posX}px`;
+      ball.style.top = `${posY}px`;
+
+      requestAnimationFrame(moveBall);
+    }
+
+    moveBall();
   </script>
 </body>
 </html>
