@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+    #flash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 10;
+    }
+    #player-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="player-screen"></div>
+  <div id="flash"></div>
+  <audio id="audio" preload="auto"></audio>
+
+  <script>
+    const repo = "indexmod/player"; // <-- актуальный репозиторий
+    const flash = document.getElementById("flash");
+    const screen = document.getElementById("player-screen");
+    const audio = document.getElementById("audio");
+
+    let audioFiles = [];
+
+    async function fetchAudioFiles() {
+      try {
+        const response = await fetch(`https://api.github.com/repos/${repo}/contents/`);
+        if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+
+        const files = await response.json();
+        if (!Array.isArray(files)) throw new Error("Некорректный ответ от API");
+
+        audioFiles = files
+          .filter(f => /\.(mp3|wav|ogg|m4a)$/i.test(f.name))
+          .map(f => f.download_url);
+
+        if (audioFiles.length > 0) {
+          playRandomTrack();
+        } else {
+          console.error("Аудиофайлы не найдены");
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки аудио:", error);
+      }
+    }
+
+    function playRandomTrack() {
+      if (audioFiles.length === 0) return;
+      const randomIndex = Math.floor(Math.random() * audioFiles.length);
+      audio.src = audioFiles[randomIndex];
+      audio.play().catch(err => console.error("Ошибка воспроизведения:", err));
+    }
+
+    function flashAndPlay() {
+      flash.style.opacity = "1";
+      setTimeout(() => {
+        flash.style.opacity = "0";
+        playRandomTrack();
+      }, 100);
+    }
+
+    screen.addEventListener("click", () => {
+      if (audio.paused) {
+        flashAndPlay();
+      }
+    });
+
+    audio.addEventListener("ended", playRandomTrack);
+    document.addEventListener("DOMContentLoaded", fetchAudioFiles);
+  </script>
+</body>
+</html>
